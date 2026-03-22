@@ -1,5 +1,5 @@
 ---
-name: pbip-project-operations
+name: pbip
 description: This skill should be used when the user asks to "rename a table", "rename a measure", "fork a PBIP project", "update Entity references", "PBIP project structure", "cascade rename", "update report JSON", "fix broken references after rename", "create a copy of a PBIP project", "find all references to a table", or mentions PBIP file editing, report visual JSON, or post-rename verification. Provides expert guidance for project-level operations on Power BI Project (PBIP) files including table/measure renames, project forking, and report JSON updates.
 ---
 
