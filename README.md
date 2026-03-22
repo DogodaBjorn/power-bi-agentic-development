@@ -43,7 +43,7 @@ claude plugin install pbip@power-bi-agentic-development
 | [`tabular-editor-docs`](skills/tabular-editor-docs/) | tabular-editor | Local search of Tabular Editor documentation |
 | [`connect-pbid`](skills/connect-pbid/) | pbi-desktop | Connect to PBI Desktop's local AS instance via TOM and ADOMD.NET |
 | [`tmdl`](skills/tmdl/) | pbip | Author and edit TMDL files directly in PBIP projects |
-| [`pbip`](skills/pbip/) | pbip | Cascading renames, project forking, report visual JSON patterns |
+| [`pbip`](skills/pbip/) | pbip | Power BI Project (PBIP) format, structure, and file types |
 
 ### Commands
 
