@@ -9,13 +9,13 @@ Query optimization and performance strategies for Tabular Editor macros.
 **Multiple separate `EvaluateDax()` calls outperform batched queries.**
 
 ```csharp
-// ❌ Slower: Batched with UNION
+// Wrong: Slower: Batched with UNION
 string dax = "UNION(\n" +
     String.Join(",\n", allQueries) +
     ")";
 var result = EvaluateDax(dax);
 
-// ✅ Faster: Separate calls
+// Correct: Faster: Separate calls
 foreach (var query in allQueries)
 {
     var result = EvaluateDax(query);
@@ -55,7 +55,7 @@ COUNTROWS(_sample)
 
 ## Pattern 2: Stopwatch Timing
 
-Instrument your macros for performance feedback:
+Instrument macros for performance feedback:
 
 ```csharp
 var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -150,17 +150,17 @@ System.Data.DataTable GetOrExecute(string dax)
 
 ## Pattern 6: Avoiding Redundant Calculations
 
-Don't calculate what you already know:
+Avoid recalculating known values:
 
 ```csharp
-// ❌ Recalculates table row count for every column
+// Wrong: Recalculates table row count for every column
 foreach (var col in columns)
 {
     string dax = $"ROW(\"Column\", \"{col.Name}\", \"TableSize\", COUNTROWS({table}))";
     // TableSize is same for every column!
 }
 
-// ✅ Calculate once, reuse
+// Correct: Calculate once, reuse
 string tableSizeDax = $"ROW(\"Size\", COUNTROWS({table}))";
 var sizeResult = EvaluateDax(tableSizeDax);
 long tableSize = Convert.ToInt64(sizeResult.Rows[0]["[Size]"]);
@@ -173,7 +173,7 @@ foreach (var col in columns)
 
 ## Pattern 7: Limiting Results
 
-When you only need a few examples:
+When only a few examples are needed:
 
 ```csharp
 // Instead of full distinct values:
@@ -187,23 +187,23 @@ string dax = $"EVALUATE TOPN(100, DISTINCT({column}))";  // Max 100 rows
 
 ## Optimization Anti-Patterns
 
-### ❌ Don't: Batch queries that could fail independently
+### Don't: Batch queries that could fail independently
 ```csharp
 // One problematic column fails entire batch
 string dax = "UNION(" + allColumnQueries + ")";
 ```
 
-### ❌ Don't: Calculate expensive statistics you won't use
+### Don't: Calculate expensive statistics that won't be used
 ```csharp
 // Always calculating median/stdev even if user only wants count
 ```
 
-### ❌ Don't: Use UNION when simple iteration is fine
+### Don't: Use UNION when simple iteration is fine
 ```csharp
 // For 3-5 objects, separate queries may be simpler and faster
 ```
 
-### ❌ Don't: Forget InvariantCulture for number formatting
+### Don't: Forget InvariantCulture for number formatting
 ```csharp
 // Slow query on large tables made slower by culture-dependent formatting
 var display = value.ToString();  // Uses current culture

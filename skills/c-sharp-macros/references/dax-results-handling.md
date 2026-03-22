@@ -31,7 +31,7 @@ DAX returns column names with brackets:
 // DAX query: ROW("MyColumn", 1)
 // Column name in DataTable: "[MyColumn]"
 
-var value = row["[MyColumn]"];  // ✅ Include brackets
+var value = row["[MyColumn]"];  // Correct: Include brackets
 ```
 
 **Stripping brackets for display**:
@@ -51,10 +51,10 @@ string displayName = StripBrackets(row.Table.Columns[0].ColumnName);
 **DAX BLANK maps to `DBNull.Value` in C#.** Always check before type conversion:
 
 ```csharp
-// ❌ Crashes if value is BLANK
+// Wrong: Crashes if value is BLANK
 long count = Convert.ToInt64(row["[Count]"]);
 
-// ✅ Safe
+// Correct: Safe
 long count = row["[Count]"] == DBNull.Value ? 0 : Convert.ToInt64(row["[Count]"]);
 ```
 
@@ -224,30 +224,30 @@ catch (Exception ex)
 
 ## Common Pitfalls
 
-### ❌ Don't: Forget brackets in column names
+### Don't: Forget brackets in column names
 ```csharp
-var value = row["Count"];  // ❌ Missing brackets, throws exception
-var value = row["[Count]"];  // ✅ Correct
+var value = row["Count"];  // Wrong: Missing brackets, throws exception
+var value = row["[Count]"];  // Correct: Correct
 ```
 
-### ❌ Don't: Assume columns exist
+### Don't: Assume columns exist
 ```csharp
-// ❌ Crashes if column doesn't exist
+// Wrong: Crashes if column doesn't exist
 var value = row["[MaybeColumn]"];
 
-// ✅ Check first
+// Correct: Check first
 if (result.Columns.Contains("[MaybeColumn]"))
 {
     var value = row["[MaybeColumn]"];
 }
 ```
 
-### ❌ Don't: Convert DBNull directly
+### Don't: Convert DBNull directly
 ```csharp
-// ❌ Crashes on BLANK values
+// Wrong: Crashes on BLANK values
 long count = Convert.ToInt64(row["[Count]"]);
 
-// ✅ Check for DBNull first
+// Correct: Check for DBNull first
 long count = row["[Count]"] == DBNull.Value ? 0 : Convert.ToInt64(row["[Count]"]);
 ```
 

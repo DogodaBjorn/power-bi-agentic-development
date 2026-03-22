@@ -181,7 +181,7 @@ SUMMARIZECOLUMNS(
 
 ## Pattern 7: Column Name Extraction
 
-Sometimes you need the column name without table prefix:
+To get the column name without table prefix:
 
 ```csharp
 string colDaxName = col.DaxObjectFullName;  // 'Table'[Column]
@@ -289,29 +289,29 @@ ADDCOLUMNS(
 
 ## Common Pitfalls
 
-### ❌ Don't: Forget to check for null/empty selections
+### Don't: Forget to check for null/empty selections
 ```csharp
-var col = Selected.Column;  // ❌ Null if multiple or zero selected
-var cols = Selected.Columns;  // ✅ Always safe (empty list if none)
+var col = Selected.Column;  // Wrong: Null if multiple or zero selected
+var cols = Selected.Columns;  // Correct: Always safe (empty list if none)
 ```
 
-### ❌ Don't: Mix columns from different tables
+### Don't: Mix columns from different tables
 ```csharp
 // Most DAX operations require same table
-GROUPBY('Table1', 'Table2'[Column])  // ❌ Error
+GROUPBY('Table1', 'Table2'[Column])  // Wrong: Error
 ```
 
-### ❌ Don't: Forget Boolean column edge case
+### Don't: Forget Boolean column edge case
 ```csharp
-MINX(table, [BooleanColumn])  // ❌ Crashes
-MINX(table, FORMAT([BooleanColumn], "True/False"))  // ✅ Works
+MINX(table, [BooleanColumn])  // Wrong: Crashes
+MINX(table, FORMAT([BooleanColumn], "True/False"))  // Correct: Works
 ```
 
-### ❌ Don't: Hardcode table/column names
+### Don't: Hardcode table/column names
 ```csharp
-string dax = "COUNTROWS('Sales')";  // ❌ Brittle
+string dax = "COUNTROWS('Sales')";  // Wrong: Brittle
 
-string dax = $"COUNTROWS({Selected.Table.DaxObjectFullName})";  // ✅ Dynamic
+string dax = $"COUNTROWS({Selected.Table.DaxObjectFullName})";  // Correct: Dynamic
 ```
 
 ## Best Practices

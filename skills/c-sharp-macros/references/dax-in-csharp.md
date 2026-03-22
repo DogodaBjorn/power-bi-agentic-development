@@ -9,7 +9,7 @@ Patterns for embedding DAX query strings in C# without syntax conflicts.
 DAX queries use quotes, brackets, and newlines. C# strings use quotes. This creates escaping nightmares:
 
 ```csharp
-// ❌ Syntax hell
+// Wrong: Syntax hell
 string dax = "EVALUATE ROW(\"Column\", \"Value\", \"Count\", COUNTROWS('Table'))";
 ```
 
@@ -18,7 +18,7 @@ string dax = "EVALUATE ROW(\"Column\", \"Value\", \"Count\", COUNTROWS('Table'))
 Use `@""` for verbatim strings, escape inner quotes with `""`:
 
 ```csharp
-// ✅ Readable
+// Correct: Readable
 string dax = @"
 EVALUATE
 ROW(
@@ -49,10 +49,10 @@ ROW(
 
 **Key insight**: `DaxObjectFullName` already has quotes/brackets. Don't add more:
 ```csharp
-// ❌ Wrong
+// Wrong: Wrong
 $"'{colDaxName}'"  // Results in: ''Table'[Column]'
 
-// ✅ Right
+// Correct: Right
 $"{colDaxName}"    // Results in: 'Table'[Column]
 ```
 
@@ -106,10 +106,10 @@ When embedding calculated numbers in DAX strings:
 ```csharp
 double binSize = (max - min) / 12;
 
-// ❌ Wrong - uses current culture (might use comma as decimal)
+// Wrong: Wrong - uses current culture (might use comma as decimal)
 string dax = $"VAR _binSize = {binSize}";  // Could become: VAR _binSize = 1,5
 
-// ✅ Right - always uses period
+// Correct: Right - always uses period
 string dax = $"VAR _binSize = {binSize.ToString(System.Globalization.CultureInfo.InvariantCulture)}";
 ```
 
@@ -117,32 +117,31 @@ string dax = $"VAR _binSize = {binSize.ToString(System.Globalization.CultureInfo
 
 ## Common Pitfalls
 
-### ❌ Don't: Nest quotes incorrectly
+### Don't: Wrap DaxObjectFullName in extra quotes
+
+`DaxObjectFullName` already includes quotes/brackets. Wrapping it in escaped quotes turns the column reference into a string literal:
+
 ```csharp
+// Correct -- DaxObjectFullName is already quoted
 string dax = $"ROW(\"{col.Name}\", {col.DaxObjectFullName})";
-// Results in: ROW("Sales", 'Dim'[Sales])
-// DAX expects: ROW("Sales", 'Dim'[Sales]) - this is actually fine
-```
+// Result: ROW("Sales", 'Dim'[Sales])  -- column reference, works
 
-Actually, the above works. The real pitfall is:
-
-```csharp
-// ❌ Wrong - double-quoting already-quoted names
+// Wrong -- extra quotes make it a string literal, not a reference
 string dax = $"ROW(\"{col.Name}\", \"{col.DaxObjectFullName}\")";
-// Results in: ROW("Sales", "'Dim'[Sales]")  - DAX string, not column reference!
+// Result: ROW("Sales", "'Dim'[Sales]")  -- DAX string, breaks
 ```
 
-### ❌ Don't: Forget comma separators in ROW()
+### Don't: Forget comma separators in ROW()
 ```csharp
 string dax = $@"ROW(""A"" ""B"")";  // Missing comma between "A" and "B"
 ```
 
-### ❌ Don't: Use single quotes for strings in DAX
+### Don't: Use single quotes for strings in DAX
 ```csharp
-// ❌ Wrong - DAX uses double quotes for strings
+// Wrong: Wrong - DAX uses double quotes for strings
 string dax = "ROW('Column', 'Value')";
 
-// ✅ Right
+// Correct: Right
 string dax = @"ROW(""Column"", ""Value"")";
 ```
 
@@ -152,7 +151,7 @@ string dax = @"ROW(""Column"", ""Value"")";
 2. **Use `DaxObjectFullName`** for table/column references - it handles quoting
 3. **Use `InvariantCulture`** for number-to-string conversion
 4. **Test with special characters** - table/column names with spaces, quotes, brackets
-5. **Add comments** in C# code explaining what DAX you're building
+5. **Add comments** in C# code explaining what DAX is being built
 
 ## Testing Pattern
 
@@ -162,7 +161,7 @@ Before committing to complex string building:
 // Step 1: Build the DAX
 string dax = /* your construction logic */;
 
-// Step 2: Output it to see what you built
+// Step 2: Output it to see the result
 Output(dax);
 
 // Step 3: Execute only after verifying

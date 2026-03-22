@@ -256,7 +256,7 @@ foreach(var c in Model.AllColumns.Where(c =>
 
 ### Overview
 
-When building macros that execute DAX queries, you'll encounter patterns for embedding DAX in C#, handling query results, building dynamic queries from user selections, and optimizing performance.
+Macros that execute DAX queries involve patterns for embedding DAX in C#, handling query results, building dynamic queries from user selections, and optimizing performance.
 
 These patterns are applicable to any macro that queries or manipulates semantic model data.
 
