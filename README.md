@@ -1,7 +1,7 @@
 <h1 align="center">power-bi-agentic-development</h1>
 
 <p align="center">
-  Skills and tools for agentic Power BI development
+  A marketplace for skills and tools for agentic Power BI development
 </p>
 
 <p align="center">
