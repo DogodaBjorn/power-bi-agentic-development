@@ -92,6 +92,19 @@ $table.Partitions.Add($partition)
 $model.Tables.Add($table)
 ```
 
+After `SaveChanges()`, a regular table has metadata only -- no data. Run a `full` refresh to execute the M expression and load data into VertiPaq:
+
+```powershell
+$model.Tables["NewTable"].RequestRefresh([Microsoft.AnalysisServices.Tabular.RefreshType]::Full)
+$model.SaveChanges()
+```
+
+Verify the table loaded correctly:
+
+```powershell
+$cmd.CommandText = "EVALUATE ROW(""@RowCount"", COUNTROWS('NewTable'))"
+```
+
 ### Create (Calculated Table via DAX)
 
 ```powershell
@@ -139,8 +152,17 @@ RETURN
 $table.Partitions.Add($partition)
 
 $model.Tables.Add($table)
-# After SaveChanges(), set the date column as the key for time intelligence:
-# $model.Tables["Date"].Columns["Date"].IsKey = $true
+```
+
+After `SaveChanges()`, calculated tables need a `calculate` refresh to evaluate the DAX expression and populate the table. The server auto-infers `CalculatedTableColumn` objects, but the data won't be queryable until refreshed:
+
+```powershell
+$model.RequestRefresh([Microsoft.AnalysisServices.Tabular.RefreshType]::Calculate)
+$model.SaveChanges()
+
+# Then mark the date column as the table key (required for time intelligence)
+$model.Tables["Date"].Columns["Date"].IsKey = $true
+$model.SaveChanges()
 ```
 
 ### Read
@@ -208,6 +230,16 @@ $cc.DataType = [Microsoft.AnalysisServices.Tabular.DataType]::String
 $model.Tables["Customers"].Columns.Add($cc)
 ```
 
+After `SaveChanges()`, the calculated column exists as metadata but has no values. A `calculate` refresh evaluates the DAX expression and populates the column. Without it, queries against this column return blanks:
+
+```powershell
+$model.RequestRefresh([Microsoft.AnalysisServices.Tabular.RefreshType]::Calculate)
+$model.SaveChanges()
+
+# Verify the column has values
+$cmd.CommandText = "EVALUATE TOPN(3, SELECTCOLUMNS('Customers', ""@FullName"", 'Customers'[Full Name]))"
+```
+
 ### Read
 
 ```powershell
@@ -264,6 +296,13 @@ $m.DisplayFolder = "Key Metrics"
 $m.Description = "Sum of all sales amounts"
 $m.IsHidden = $false
 $model.Tables["Sales"].Measures.Add($m)
+```
+
+Measures are queryable immediately after `SaveChanges()` -- no refresh needed, because DAX measures are evaluated at query time, not materialized in storage. Always verify the expression logic works:
+
+```powershell
+$cmd.CommandText = "EVALUATE ROW(""@Result"", [Total Revenue])"
+# If this errors, the expression references missing columns, has syntax issues, or creates circular dependencies
 ```
 
 ### Create with KPI
@@ -362,6 +401,27 @@ $rel.IsActive = $true
 $rel.CrossFilteringBehavior = [Microsoft.AnalysisServices.Tabular.CrossFilteringBehavior]::OneDirection
 $rel.RelyOnReferentialIntegrity = $false  # set true if source guarantees RI (performance optimization)
 $model.Relationships.Add($rel)
+```
+
+Before creating a relationship, check for orphaned keys in the "many" side that don't exist in the "one" side. Orphaned keys cause blank rows in visuals and indicate data quality issues (referential integrity violations):
+
+```powershell
+# Find Sales[DateKey] values missing from Date[DateKey]
+$cmd.CommandText = @"
+EVALUATE
+FILTER(
+    DISTINCT('Sales'[DateKey]),
+    NOT 'Sales'[DateKey] IN VALUES('Date'[DateKey])
+)
+"@
+# If this returns rows, those keys will produce blank rows in reports
+```
+
+After `SaveChanges()`, a `calculate` refresh propagates the cross-filter. Verify the relationship works by grouping from the "one" side and aggregating from the "many" side -- if the totals are correct per group, the relationship is active:
+
+```powershell
+$cmd.CommandText = "EVALUATE SUMMARIZECOLUMNS('Date'[Year], ""@SalesTotal"", SUM('Sales'[Amount]))"
+# If every row shows the same total, the relationship is not filtering correctly
 ```
 
 ### Read
@@ -859,81 +919,82 @@ This persists all pending modifications in a single transaction. If validation f
 
 ## Refresh After Modifications
 
-`SaveChanges()` persists metadata, but the VertiPaq engine may need a refresh to materialize the changes:
+`SaveChanges()` persists metadata, but the VertiPaq engine may need a refresh to materialize certain changes. The inline notes above each object type explain which refresh is needed -- here is the summary:
 
-| What was added/changed | Required refresh |
-|------------------------|-----------------|
-| Measure (DAX expression) | `calculate` -- recalculates DAX without re-querying source |
-| Calculated column | `calculate` -- evaluates DAX expression and populates column |
-| Calculated table | `calculate` -- evaluates DAX partition expression |
-| Regular table / data column | `full` -- re-queries the data source and loads data |
-| Partition M expression change | `full` on that partition/table |
-| Relationship (new or modified) | `calculate` -- engine re-evaluates cross-filter propagation |
-| Column/measure rename, folder, format | None -- metadata-only, visible immediately |
-| Role / perspective / culture | None -- metadata-only |
+| What was added/changed | Required refresh | Why |
+|------------------------|-----------------|-----|
+| Measure (DAX expression) | None | Measures are evaluated at query time, not stored |
+| Calculated column | `calculate` | DAX expression must be evaluated to populate the column |
+| Calculated table | `calculate` | DAX partition expression must be evaluated to generate rows |
+| Regular table / data column | `full` | Source data must be queried and loaded into VertiPaq |
+| Partition M expression change | `full` on that partition/table | New M expression must be re-executed against the source |
+| Relationship (new or modified) | `calculate` | Cross-filter propagation must be re-evaluated |
+| Column/measure rename, folder, format | None | Metadata-only changes visible immediately |
+| Role / perspective / culture | None | Metadata-only |
+
+
+## Best Practices for Model Modifications
+
+### Naming Conventions
+
+Use clear, business-friendly names that follow consistent conventions:
+
+- **Tables**: Singular nouns (`Sales`, `Customer`, `Date`) or descriptive (`Sales Targets`)
+- **Columns**: Business terms, not source system names (`Customer Name` not `CUST_NM`)
+- **Measures**: Describe the aggregation (`Total Revenue`, `Avg Order Value`, `YTD Sales`)
+- **Avoid**: Abbreviations, underscores, prefixes like `dim_` or `fact_` in user-facing names
+- **Display folders**: Use forward slashes (`Key Metrics/Revenue`) to organize measures and columns into logical groups
+
+When renaming objects, check for downstream DAX references that may break. Measures reference columns and other measures by name.
+
+### Format Strings
+
+Always set format strings on measures and numeric columns. Unformatted numbers appear as raw decimals in reports:
 
 ```powershell
-# After adding a calculated table or calculated column
-$model.RequestRefresh([Microsoft.AnalysisServices.Tabular.RefreshType]::Calculate)
-$model.SaveChanges()
-
-# After adding a regular table with a data source
-$model.Tables["NewTable"].RequestRefresh([Microsoft.AnalysisServices.Tabular.RefreshType]::Full)
-$model.SaveChanges()
+$m.FormatString = "#,0"          # integer with thousands separator
+$m.FormatString = "#,0.00"       # two decimal places
+$m.FormatString = "`$#,0.00"     # currency
+$m.FormatString = "0.0%"         # percentage
+$m.FormatString = "yyyy-MM-dd"   # date
 ```
 
-
-## Validating Changes with DAX Queries
-
-After modifying the model, always validate that changes work as expected. Use ADOMD.NET DAX queries to confirm.
-
-### Verify a New Measure
-
-After adding a DAX measure, query it to confirm the expression evaluates correctly:
+For dynamic format strings that change based on context (e.g., showing % or $ depending on a slicer), use `FormatStringDefinition` with a DAX expression (requires compatibility level 1470+):
 
 ```powershell
-$cmd.CommandText = "EVALUATE ROW(""@Result"", [New Measure Name])"
-# If this returns an error, the DAX expression is invalid
-# Check for division by zero, missing column references, circular dependencies
+$fsd = New-Object Microsoft.AnalysisServices.Tabular.FormatStringDefinition
+$fsd.Expression = 'IF(SELECTEDVALUE(Metric[Type]) = "Pct", "0.0%", "$#,0")'
+$m.FormatStringDefinition = $fsd
 ```
 
-### Verify a Relationship
+### DAX and M Expression Formatting
 
-Test a new relationship by grouping a column from the "many" side and aggregating from the "one" side (or vice versa). If the relationship works, the aggregation will respect the filter context:
+- Write DAX with proper indentation and line breaks -- one function per line for complex expressions
+- Use `FormatDax()` in Tabular Editor to auto-format; via TOM, format manually or use dax.guide for reference
+- Only add comments to non-obvious logic; do not comment self-evident patterns like `SUM(Sales[Amount])`
+- For M/Power Query expressions in partitions, format with indentation and descriptive step names
+- Avoid single-line DAX for anything beyond trivial expressions
 
-```powershell
-# Relationship: Sales[CustomerID] -> Customers[CustomerID]
-# Group by customer name (from side), aggregate sales amount (to side)
-$cmd.CommandText = "EVALUATE SUMMARIZECOLUMNS('Customers'[Name], ""@TotalSales"", SUM('Sales'[Amount]))"
-# If this returns one row per customer with correct totals, the relationship is working
-# If all rows show the same total, the relationship is inactive or misconfigured
-```
+### General Quality Checks
 
-### Check for Referential Integrity Violations Before Creating a Relationship
-
-Before creating a relationship, check if the "many" side has values not present in the "one" side. Orphaned keys cause blank rows in reports and can indicate data quality issues:
+After any batch of modifications, verify the model is consistent:
 
 ```powershell
-# Find values in Sales[CustomerID] that don't exist in Customers[CustomerID]
-$cmd.CommandText = @"
-EVALUATE
-FILTER(
-    DISTINCT('Sales'[CustomerID]),
-    NOT 'Sales'[CustomerID] IN VALUES('Customers'[CustomerID])
-)
-"@
-# If this returns rows, those are orphaned keys -- they will produce blank rows in visuals
-# Fix the source data or set RelyOnReferentialIntegrity = true (skips the check, assumes clean data)
-```
+# Check all measures have format strings
+foreach ($t in $model.Tables) {
+    foreach ($m in $t.Measures) {
+        if ([string]::IsNullOrEmpty($m.FormatString) -and ($m.FormatStringDefinition -eq $null -or [string]::IsNullOrEmpty($m.FormatStringDefinition.Expression))) {
+            Write-Output "MISSING FORMAT: [$($t.Name)].[$($m.Name)]"
+        }
+    }
+}
 
-### Verify a Calculated Table or Column Exists
-
-After creating a calculated table or column and running a `calculate` refresh, confirm it was materialized:
-
-```powershell
-# Check row count of a calculated table
-$cmd.CommandText = "EVALUATE ROW(""@RowCount"", COUNTROWS('CalculatedTableName'))"
-
-# Check a calculated column has values
-$cmd.CommandText = "EVALUATE TOPN(5, SELECTCOLUMNS('Table', ""@Col"", 'Table'[CalculatedColumnName]))"
+# Check all visible columns have descriptions (optional but recommended)
+foreach ($t in $model.Tables | Where-Object { -not $_.IsHidden }) {
+    foreach ($c in $t.Columns | Where-Object { -not $_.IsHidden -and $_ -isnot [Microsoft.AnalysisServices.Tabular.RowNumberColumn] }) {
+        if ([string]::IsNullOrEmpty($c.Description)) {
+            Write-Output "NO DESCRIPTION: [$($t.Name)].[$($c.Name)]"
+        }
+    }
+}
 ```
