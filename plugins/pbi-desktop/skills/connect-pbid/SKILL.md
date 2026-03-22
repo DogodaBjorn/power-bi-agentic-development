@@ -205,11 +205,13 @@ $conn.Open()
 ### Execute a Query
 
 All queries should preferably use `SUMMARIZECOLUMNS`.
-Check `dax.guide` online for information about DAX functions, if necesssary.
+Check `dax.guide` online for information about DAX functions, if necessary.
+
+**Important:** ADOMD.NET returns fully-qualified column names from DAX queries (e.g., `'Monsters'[Name]` not `Name`). Always use **column indices** (`$reader[0]`, `$reader[1]`) to read values, not column name strings. Accessing `$reader["Name"]` will fail silently and return blank.
 
 ```powershell
 $cmd = $conn.CreateCommand()
-$cmd.CommandText = "EVALUATE SUMMARIZECOLUMNS('Table'[Column], \"@MeasureName\", [Measure], TREATAS( {\"List\", \"of\", \"Items\"}, 'Table2'[ColumnBeingFiltered] ) )"
+$cmd.CommandText = "EVALUATE SUMMARIZECOLUMNS('Table'[Column], ""@MeasureName"", [Measure])"
 
 $reader = $cmd.ExecuteReader()
 while ($reader.Read()) {
