@@ -38,9 +38,12 @@ Activate only when the Tabular Editor CLI, Power BI MCP server, or `connect-pbid
 | File | Contents | Location |
 |------|----------|----------|
 | `model.tmdl` | Model configuration, `ref table` entries, query groups, annotations | `definition/` |
-| `database.tmdl` | Compatibility level | `definition/` |
+| `database.tmdl` | Compatibility level, model ID | `definition/` |
 | `relationships.tmdl` | All relationships between tables | `definition/` |
 | `expressions.tmdl` | Shared M expressions and parameters | `definition/` |
+| `roles.tmdl` | Security roles, RLS filter expressions, role members | `definition/` |
+| `perspectives.tmdl` | Perspective definitions and object membership | `definition/` |
+| `dataSources.tmdl` | Legacy data source definitions (if present) | `definition/` |
 | `tables/<Name>.tmdl` | Table definition with columns, measures, hierarchies, partitions | `definition/tables/` |
 | `cultures/<locale>.tmdl` | Linguistic metadata and translations | `definition/cultures/` |
 
@@ -55,9 +58,9 @@ table Product                              // depth 0: top-level declaration
 	lineageTag: abc-123                    // depth 1: table property
 
 	measure '# Products' =                // depth 1: measure declaration
-			COUNTROWS (                    // depth 2: DAX expression body
-			    VALUES ( Product[Name] )   // depth 2: continued
-			)                              // depth 2: continued
+			COUNTROWS (                    // depth 3: DAX expression body (one deeper than properties)
+			    VALUES ( Product[Name] )   // depth 3: continued
+			)                              // depth 3: continued
 		formatString: #,##0               // depth 2: measure property
 		displayFolder: Measures            // depth 2: measure property
 		lineageTag: def-456               // depth 2: measure property
@@ -75,7 +78,7 @@ table Product                              // depth 0: top-level declaration
 - Use tabs, not spaces
 - Table-level objects (columns, measures, hierarchies, partitions) are at depth 1
 - Properties of those objects are at depth 2
-- Multi-line DAX expression bodies are at depth 2 (two tabs from the table level)
+- Multi-line DAX expression bodies are at depth 3 (one level deeper than properties -- this is required by the TMDL parser)
 - Annotations are at the same depth as properties of their parent object, separated by a blank line
 
 ### Descriptions (`///`)
@@ -137,9 +140,13 @@ Properties should follow a consistent order, though TMDL is not strict about it.
 
 ### When to Quote
 
-Use single quotes around names that contain:
+Use single quotes around names that contain any of these characters:
 - Spaces: `'Product Name'`
-- Special characters: `'Sales ($)'`, `'OTD % (Value)'`, `'1) Selected Metric'`
+- Dots: `'Sales.Amount'`
+- Equals: `'Price = Target'`
+- Colons: `'Date:Key'`
+- Single quotes (escape by doubling): `'Customer''s Name'`
+- Other special characters: `'Sales ($)'`, `'OTD % (Value)'`, `'1) Selected Metric'`
 - Names starting with a digit: `'4) Selected Period'`
 
 ### When NOT to Quote
@@ -299,6 +306,103 @@ measure 'Sales Target MTD vs. Actuals (%)' =
 ```
 
 **Note:** `formatStringDefinition` replaces `formatString` when the format is computed dynamically via a DAX expression (often a calculation group format function).
+
+## Calculated Columns
+
+A calculated column has a DAX expression instead of a `sourceColumn`:
+
+```tmdl
+	column 'Full Name' =
+			[First Name] & " " & [Last Name]
+		dataType: string
+		lineageTag: abc-123
+		summarizeBy: none
+		isDataTypeInferred
+
+		annotation SummarizationSetBy = Automatic
+```
+
+The DAX body follows the same depth rule as measures -- one level deeper than the column's properties.
+
+
+## Roles (Row-Level Security)
+
+Defined in `roles.tmdl`:
+
+```tmdl
+role 'Regional Sales'
+	modelPermission: read
+
+	tablePermission Sales = [Region] = USERPRINCIPALNAME()
+```
+
+With object-level security (OLS) on a column:
+
+```tmdl
+role 'Restricted Finance'
+	modelPermission: read
+
+	tablePermission Sales = [Department] = "Finance"
+
+		columnPermission Margin
+			metadataPermission: none
+```
+
+
+## Calculation Groups
+
+A calculation group is a special table with `calculationGroup` and `calculationItem` objects:
+
+```tmdl
+table 'Time Intelligence'
+	lineageTag: abc-123
+
+	calculationGroup
+		precedence: 10
+
+		calculationItem YTD =
+				CALCULATE (
+				    SELECTEDMEASURE (),
+				    DATESYTD ( 'Date'[Date] )
+				)
+			ordinal: 0
+
+		calculationItem 'Prior Year' =
+				CALCULATE (
+				    SELECTEDMEASURE (),
+				    DATEADD ( 'Date'[Date], -1, YEAR )
+				)
+			ordinal: 1
+
+	column Name
+		dataType: string
+		isHidden
+		lineageTag: def-456
+		summarizeBy: none
+		sourceColumn: Name
+
+	partition 'Time Intelligence' = calculationGroup
+		mode: import
+```
+
+
+## Date Table Marking
+
+Mark a table as a date table by setting `dataCategory: Time` and `isKey` on the date column:
+
+```tmdl
+table Date
+	dataCategory: Time
+	lineageTag: abc-123
+
+	column Date
+		isKey
+		dataType: dateTime
+		lineageTag: def-456
+		summarizeBy: none
+		sourceColumn: Date
+```
+
 
 ## Common Data Quality Patterns
 
@@ -463,7 +567,7 @@ ref cultureInfo en-US
 | Top-level declaration (`table`, `relationship`, `expression`) | 0 | 0 |
 | Table properties, column/measure/hierarchy declarations | 1 | 1 |
 | Column/measure properties, hierarchy levels | 2 | 2 |
-| Multi-line DAX body | 2 | 2 |
+| Multi-line DAX expression body | 3 | 3 |
 | Level properties | 3 | 3 |
 
 ## Additional Resources
@@ -472,6 +576,7 @@ ref cultureInfo en-US
 
 - **`references/column-properties.md`** - Full property reference with valid values, `summarizeBy` rules, `formatString` patterns, `PBI_FormatHint` behavior, and `dataType` values
 - **`references/naming-conventions.md`** - SQLBI naming conventions, display folder conventions, measure table conventions, and calculation group naming
+- **`references/tmdl-file-examples.md`** - Complete examples for every TMDL file type (model, database, expressions, relationships, roles, tables, cultures) including backtick-enclosed expressions, field parameters, calculation groups, and date tables
 
 ### External References
 

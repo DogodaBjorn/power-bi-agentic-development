@@ -58,9 +58,11 @@ A PBIP project consists of a `.pbip` entry point file and two main artifact fold
 │   ├── definition.pbism                    # Semantic model entry point
 │   └── DAXQueries/                         # Model-level DAX queries
 │       └── *.dax
-└── <ProjectName>.Report/
-    └── definition.pbir                     # Report entry point - references model
+├── .platform                               # Item metadata (displayName, logicalId)
+└── .gitignore
 ```
+
+For file type details (`.platform`, `.pbir`, `.pbism` structure), see [pbip-file-types.md](./references/pbip-file-types.md).
 
 ### Key File Types
 
@@ -346,6 +348,7 @@ grep -r "'Old Name'" --include="*.tmdl"
 
 - **`references/rename-cascade.md`** - Detailed before/after examples for each cascade location, including SparklineData deep-dive and edge cases for quoting in DAX
 - **`references/report-json-patterns.md`** - Visual JSON structure documentation with Entity/Property/queryRef patterns, page filters, reportExtensions, diagram layout, and SparklineData format
+- **`references/pbip-file-types.md`** - Structure of each PBIP file type (.pbip, .platform, .pbir, .pbism, visual.json, page.json, reportExtensions.json, semanticModelDiagramLayout.json)
 
 ### External References
 
