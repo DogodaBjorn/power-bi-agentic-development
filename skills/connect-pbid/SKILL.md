@@ -524,8 +524,10 @@ To fetch full documentation pages for detailed API usage, use the `microsoft_doc
 **Example scripts in `scripts/`:**
 
 - `connect-and-enumerate.ps1` - Connect to PBI Desktop and list all tables, columns, measures, relationships
+- `explore-model.ps1` - Hierarchical metadata enumeration (tables, columns, measures, hierarchies, partitions, relationships, roles, perspectives, cultures, expressions, data sources)
 - `query-dax.ps1` - Execute DAX queries via ADOMD.NET with formatted output
 - `refresh-table.ps1` - Refresh a table or entire model via TMSL with configurable refresh type
+- `modify-tom-objects.ps1` - Create table, rename measures, set folders/formats, hide columns, create relationship (with undo)
 - `connect-from-mac.sh` - macOS wrapper that runs PowerShell scripts in a Parallels VM via `prlctl exec`
 
 **External references:**
