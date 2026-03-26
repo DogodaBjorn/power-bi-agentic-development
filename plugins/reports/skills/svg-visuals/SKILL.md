@@ -89,58 +89,141 @@ For **image visuals**, set `sourceType='imageData'` with `sourceField` in the vi
 
 Validate JSON syntax with `jq empty <reportExtensions.json>` and inspect the file to confirm measure definitions and data categories.
 
-## DAX SVG Fundamentals
+## Prefer UDF Libraries Over Custom DAX
 
-### Basic Structure
+Before writing a custom SVG measure from scratch, check whether an existing UDF library already provides the chart type. **DaxLib.SVG** (by Jake Duddy) is the preferred library -- it provides parameterized functions for area, bars, boxplot, heatmap, jitter, line, pill, progress bar, and violin charts. Call a single function instead of writing hundreds of lines of SVG DAX:
+
+```dax
+-- Preferred: call DaxLib.SVG function
+Viz.Bars( [Sales Amount], 'Product'[Category], "#5B8DBE" )
+
+-- Instead of: 80+ lines of manual SVG construction
+```
+
+If DaxLib.SVG is available in the model (check for measures starting with `Viz.`, `Compound.`, or `Element.`), use it. If not and the chart type is covered, suggest the user install it. Only write custom SVG DAX when no library function exists for the required visualization.
+
+Other libraries to check: PowerBI MacGuyver Toolbox (C# scripts that generate SVG measures via Tabular Editor), PBI-Core-Visuals-SVG-HTML (David Bacci), Dashboard Design UDF Library. See `references/community-examples.md` for details.
+
+## DAX SVG Conventions
+
+### Measure Structure (VAR Pattern)
+
+Every SVG measure must follow a strict VAR-based structure. Organize code into clearly separated regions:
 
 ```dax
 SVG Measure =
-VAR _Prefix = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'>"
-VAR _Content = "<rect x='0' y='0' width='50' height='10' fill='#2196F3'/>"
-VAR _Suffix = "</svg>"
-RETURN _Prefix & _Content & _Suffix
+-- CONFIG: Input fields and visual parameters
+VAR _Actual = [Sales Amount]
+VAR _Target = [Sales Target]
+VAR _Scope = ALLSELECTED ( 'Product'[Category] )
+
+-- CONFIG: Colors
+VAR _BarColor = "#5B8DBE"
+VAR _TargetColor = "#333333"
+
+-- NORMALIZATION: Scale values to SVG coordinate space
+VAR _AxisMax = CALCULATE( MAXX( _Scope, [Sales Amount] ), REMOVEFILTERS( 'Product'[Category] ) ) * 1.1
+VAR _AxisRange = 100
+VAR _ActualNormalized = DIVIDE( _Actual, _AxisMax ) * _AxisRange
+
+-- SVG ELEMENTS: One VAR per visual element
+VAR _SvgPrefix = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 25'>"
+VAR _Sort = "<desc>" & FORMAT( _Actual, "000000000000" ) & "</desc>"
+VAR _Bar = "<rect x='0' y='5' width='" & _ActualNormalized & "' height='15' fill='" & _BarColor & "'/>"
+VAR _TargetLine = "<rect x='" & DIVIDE( _Target, _AxisMax ) * _AxisRange & "' y='2' width='2' height='21' fill='" & _TargetColor & "'/>"
+VAR _SvgSuffix = "</svg>"
+
+-- ASSEMBLY: Combine in rendering order (back to front)
+VAR _SVG = _SvgPrefix & _Sort & _Bar & _TargetLine & _SvgSuffix
+
+RETURN _SVG
 ```
+
+Key conventions:
+- **CONFIG section first** -- input measures, scope column, colors, font settings. Users change only this section.
+- **NORMALIZATION section** -- scale raw values to SVG coordinate space (see below)
+- **SVG ELEMENTS** -- one VAR per `<rect>`, `<circle>`, `<text>`, `<line>`, etc.
+- **ASSEMBLY** -- concatenate elements in document order (first = back layer, last = front)
+- **`<desc>` sort trick** -- embed `FORMAT(_Actual, "000000000000")` in a `<desc>` tag so the table/matrix can sort by the SVG column
+
+### Axis Normalization (Critical)
+
+SVG coordinates must be normalized to a fixed range. Raw measure values (e.g., 1,234,567) cannot be used directly as pixel coordinates. The standard pattern:
+
+```dax
+-- 1. Define the SVG coordinate range
+VAR _BarMin = 0       -- leftmost position (or offset for labels)
+VAR _BarMax = 100     -- rightmost position
+
+-- 2. Find the maximum value across all rows in the visual's filter context
+VAR _Scope = ALLSELECTED( 'Table'[GroupColumn] )
+VAR _MaxInScope = CALCULATE( MAXX( _Scope, [Measure] ), REMOVEFILTERS( 'Table'[GroupColumn] ) )
+VAR _AxisMax = _MaxInScope * 1.1   -- 10% padding
+
+-- 3. Normalize each value to the SVG range
+VAR _AxisRange = _BarMax - _BarMin
+VAR _Normalized = DIVIDE( _Actual, _AxisMax ) * _AxisRange
+```
+
+Use `ALLSELECTED` for the scope when the chart should respond to slicer context. Use `ALL` for a fixed axis across all filter contexts. The `* 1.1` padding prevents bars from touching the edge.
+
+### HASONEVALUE Guard
+
+Table/matrix SVG measures must guard against subtotal/total rows where multiple categories are in scope:
+
+```dax
+IF( HASONEVALUE( 'Table'[GroupColumn] ),
+    -- SVG code here
+)
+```
+
+Without this guard, the measure evaluates on grand total rows with meaningless aggregated values.
 
 ### Escaping and Color Rules
 
-- **Prefer single quotes for SVG attributes** -- avoids DAX double-quote escaping entirely
-- If double quotes needed in DAX strings: `""` (DAX escape convention)
-- Use `viewBox` for responsive scaling: `viewBox='0 0 100 100'`
-- `xmlns` attribute is required on `<svg>` element
-- **Colors must be hex codes with `#`** -- e.g., `fill='#2196F3'`. Using `%23` URL encoding causes `VisualDataProxyExecutionUnknownError` in image visuals and is unreliable elsewhere. Never use named colors (`blue`, `red`).
-- No JavaScript -- SVG must be purely declarative
+- **Single quotes for SVG attributes** -- avoids DAX double-quote escaping: `fill='#2196F3'`
+- **Double quotes in DAX**: escape as `""` (DAX convention)
+- **`viewBox`** for responsive scaling: `viewBox='0 0 100 25'`
+- **`xmlns`** required on `<svg>` element
+- **Hex colors with `#` only** -- e.g., `fill='#2196F3'`. `%23` URL encoding causes errors in image visuals. Never use named colors.
+- **No JavaScript** -- SVG must be purely declarative
 
 ### SVG Coordinate System
 
-- Y=0 is at the **top** -- invert values for charts: `100 - [Y]`
-- Use `viewBox` with 0-100 range for normalized coordinates
+- Y=0 is at the **top** -- invert values for charts: `_Height - _Value`
+- Use `viewBox` with a 0-100 range for normalized coordinates
 - Elements render in document order (first = back, last = front)
 
-### Key Technique: CONCATENATEX for Series Data
+### CONCATENATEX for Series Data
+
+For sparklines and multi-point charts, build coordinate strings with CONCATENATEX:
 
 ```dax
-VAR Lines = CONCATENATEX(
-    SparklineTable,
+VAR _Points = CONCATENATEX(
+    _SparklineTable,
     [X] & "," & (100 - [Y]),
     " ",
-    [Date]
+    [Date], ASC
 )
--- Builds: "0,80 10,60 20,40 30,20"
+-- Produces: "0,80 10,60 20,40 30,20"
 -- Use in: <polyline points='...'/>
 ```
 
 ## Best Practices
 
-1. **Break SVG into VAR variables** -- one per element for maintainability
-2. **Use `viewBox`** for responsive scaling instead of fixed dimensions
-3. **Use HASONEVALUE guard** -- return BLANK() when not in single-category context
-4. **Round coordinates** to 1-2 decimal places for performance
-5. **Store as extension measures** -- SVG measures don't belong in a semantic model
-6. **Use `display_folder`** to organize SVG measures together
-7. **Preview first** -- save static SVG to `/tmp/`, open in browser, iterate before writing DAX
-8. **Limit complexity** -- ~32K character limit per measure string
-9. **Hex colors only** -- use `#` directly (e.g., `fill='#01B8AA'`), never `%23` URL encoding
-10. **Image visuals need no `query` block** -- only `objects.image` with `sourceType='imageData'` and `sourceField`
+1. **Check UDF libraries first** -- use DaxLib.SVG or MacGuyver Toolbox functions before writing custom DAX
+2. **VAR pattern mandatory** -- one VAR per config value, one VAR per SVG element, assembly at the end
+3. **Normalize all values** -- raw measure values must be scaled to SVG coordinate range
+4. **HASONEVALUE guard** -- always guard against total/subtotal rows in table/matrix context
+5. **`<desc>` sort trick** -- embed formatted value in `<desc>` for sortable SVG columns
+6. **Use `viewBox`** for responsive scaling instead of fixed width/height
+7. **Round coordinates** to 1-2 decimal places for performance
+8. **Store as extension measures** -- SVG measures don't belong in the semantic model
+9. **Use `display_folder`** to organize SVG measures together (e.g., `"SVG Charts"`)
+10. **Preview first** -- save static SVG to `/tmp/`, open in browser, iterate before writing DAX
+11. **Limit complexity** -- ~32K character limit on rendered SVG string (not DAX expression)
+12. **Hex colors only** -- `#` directly, never `%23` URL encoding
+13. **Image visuals need no `query` block** -- only `objects.image` with `sourceType='imageData'` and `sourceField`
 
 ## reportExtensions.json Format
 
