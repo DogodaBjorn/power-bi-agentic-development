@@ -1,6 +1,6 @@
 ---
 name: deneb-visuals
-version: 0.8.1
+version: 0.8.2
 description: "This skill should be used whenever the user mentions 'Deneb' in any context, or asks to 'create a Deneb visual', 'add a Vega-Lite chart', 'inject a Deneb spec', 'inject a Vega spec', 'build a custom visualization with Deneb', 'use Vega or Vega-Lite in Power BI', 'add cross-filtering to Deneb', 'theme a Deneb visual', 'write a Deneb spec for Power BI', 'configure Deneb interactivity', 'fix Deneb visual not rendering', 'Deneb field name escaping', 'pbiColor theme colors in Deneb', or needs guidance on Deneb visual creation, Vega/Vega-Lite spec authoring, or Deneb best practices in PBIR reports."
 ---
 
@@ -21,6 +21,7 @@ Deneb is a certified custom visual for Power BI that enables Vega and Vega-Lite 
 ## Visual Identity
 
 - **visualType:** `deneb7E15AEF80B9E4D4F8E12924291ECE89A`
+- **Bundled runtime:** Vega 6.2.0 / Vega-Lite 6.4.1 (since Deneb 1.8; use `v6.json` schema URLs)
 - **Data role:** Single `dataset` role (all fields go into one "Values" well)
 - **Default row limit:** 10,000 rows (override via `dataLimit.override`)
 - **Provider:** `vegaLite` (default) or `vega` (when Vega-specific features needed)
@@ -55,7 +56,7 @@ Create a Vega-Lite (or Vega) JSON spec file. Key difference:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "bar", "tooltip": true},
   "encoding": {
@@ -144,7 +145,9 @@ Use Power BI theme colors instead of hardcoded hex values:
 | `pbiColor(index)` | Theme color by index (0-based) | `{"signal": "pbiColor(0)"}` |
 | `pbiColor(0, -0.3)` | Darken theme color by 30% | Shade: -1 (dark) to 1 (light) |
 | `pbiColor("negative")` | Sentiment colors | `"min"`, `"middle"`, `"max"`, `"negative"`, `"positive"` |
-| `pbiColorNominal` | Categorical palette | `"range": {"scheme": "pbiColorNominal"}` |
+| `pbiColor("bad")` | Aliases for sentiment | `"bad"` = `"negative"`, `"good"` = `"positive"`, `"neutral"` = `"middle"` |
+| `pbiColorNominal` | Categorical palette (distinct) | `"range": {"scheme": "pbiColorNominal"}` |
+| `pbiColorOrdinal` | Ordinal palette (ordered categories) | `"range": {"scheme": "pbiColorOrdinal"}` |
 | `pbiColorLinear` | Continuous gradient | `"range": {"scheme": "pbiColorLinear"}` |
 | `pbiColorDivergent` | Divergent gradient | `"range": {"scheme": "pbiColorDivergent"}` |
 
@@ -169,7 +172,11 @@ Use layered marks -- background at reduced opacity, foreground shows `<field>__h
 
 ### Special Runtime Fields
 
-Deneb injects `__identity__` (row context), `__selected__` (selection state), and `<field>__highlight` (highlight values) at runtime. See `references/capabilities.md`.
+Deneb injects runtime fields into each dataset row. See `references/capabilities.md` for the full table.
+
+Key fields: `__row__` (zero-based row index, replaces removed `__identity__`), `__selected__` (selection state), `<field>__highlight` + `<field>__highlightStatus` + `<field>__highlightComparator` (cross-highlighting), `<field>__formatted` (pre-formatted value string), `<field>__format` (Power BI format string).
+
+> **Breaking change in 1.9:** `__identity__` and `__key__` were removed. Replace any `datum.__identity__` with `datum.__row__`.
 
 ## Best Practices
 

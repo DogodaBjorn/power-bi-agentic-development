@@ -1,12 +1,12 @@
 # Vega-Lite Chart Patterns for Deneb
 
-Common chart patterns for Deneb visuals. All specs assume `"data": {"name": "dataset"}` and Vega-Lite v5.
+Common chart patterns for Deneb visuals. All specs assume `"data": {"name": "dataset"}` and Vega-Lite v6 (bundled in Deneb 1.8+).
 
 ## Bar Chart (Vertical)
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "bar", "tooltip": true, "cornerRadiusTopLeft": 4, "cornerRadiusTopRight": 4},
   "encoding": {
@@ -21,7 +21,7 @@ Common chart patterns for Deneb visuals. All specs assume `"data": {"name": "dat
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "bar", "tooltip": true, "cornerRadiusTopRight": 4, "cornerRadiusBottomRight": 4},
   "encoding": {
@@ -37,7 +37,7 @@ Two-layer pattern: background shows full value at reduced opacity, foreground sh
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "layer": [
     {
@@ -68,7 +68,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "line", "point": true, "tooltip": true, "strokeWidth": 2},
   "encoding": {
@@ -83,7 +83,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "area", "opacity": 0.15, "line": {"strokeWidth": 2}, "tooltip": true},
   "encoding": {
@@ -98,7 +98,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "point", "tooltip": true, "filled": true, "opacity": 0.7},
   "encoding": {
@@ -114,7 +114,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "rect", "tooltip": true},
   "encoding": {
@@ -129,7 +129,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "arc", "innerRadius": 50, "tooltip": true},
   "encoding": {
@@ -144,7 +144,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "transform": [
     {"window": [{"op": "rank", "as": "rank"}], "sort": [{"field": "Value", "order": "descending"}]},
@@ -171,7 +171,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "encoding": {
     "y": {"field": "Category", "type": "nominal", "sort": "-x"},
@@ -188,7 +188,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "mark": {"type": "bar", "tooltip": true},
   "encoding": {
@@ -203,7 +203,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "transform": [
     {"window": [{"op": "sum", "field": "Amount", "as": "sum"}]},
@@ -249,7 +249,7 @@ Requires `enableHighlight: true` and `enableSelection: true` in visual objects.
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "$schema": "https://vega.github.io/schema/vega-lite/v6.json",
   "data": {"name": "dataset"},
   "facet": {"row": {"field": "Category", "type": "nominal", "header": {"labelAngle": 0, "title": ""}}},
   "spec": {

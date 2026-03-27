@@ -1,6 +1,6 @@
 # Vega Chart Patterns for Deneb
 
-Common Vega chart patterns for Power BI Deneb visuals. All specs use `"data": [{"name": "dataset"}]` (array form) and Vega v5/v6. Use `pbiContainerWidth` / `pbiContainerHeight` signals for responsive sizing and `pbiColor()` for theme colors.
+Common Vega chart patterns for Power BI Deneb visuals. All specs use `"data": [{"name": "dataset"}]` (array form) and Vega v6 (bundled in Deneb 1.8+). Use `pbiContainerWidth` / `pbiContainerHeight` signals for responsive sizing and `pbiColor()` for theme colors.
 
 ## Vega Spec Anatomy
 
@@ -8,7 +8,7 @@ Every Vega spec follows this structure:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "width": {"signal": "pbiContainerWidth - 25"},
   "height": {"signal": "pbiContainerHeight - 27"},
@@ -60,7 +60,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -116,7 +116,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -171,7 +171,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -245,7 +245,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -314,7 +314,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [
     {
       "name": "dataset",
@@ -369,7 +369,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [
     {
       "name": "dataset",
@@ -443,7 +443,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -500,7 +500,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -566,7 +566,7 @@ Values reference scales, fields, signals, or constants:
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [{"name": "dataset"}],
   "padding": 5,
   "width": {"signal": "pbiContainerWidth - 25"},
@@ -688,7 +688,7 @@ Faceted bar + tick mark pattern adapted from a real Power BI report. Each row sh
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [
     {
       "name": "dataset",
@@ -784,7 +784,7 @@ Multi-line KPI display showing a headline value, subtitle, and percentage change
 
 ```json
 {
-  "$schema": "https://vega.github.io/schema/vega/v5.json",
+  "$schema": "https://vega.github.io/schema/vega/v6.json",
   "data": [
     {
       "name": "dataset",

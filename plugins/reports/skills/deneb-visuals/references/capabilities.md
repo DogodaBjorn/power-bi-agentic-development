@@ -47,7 +47,7 @@ Single data role -- all columns and measures go into one "Values" well:
 | `enableHighlight` | bool | false | Cross-highlighting |
 | `enableSelection` | bool | false | Cross-filtering |
 | `selectionMode` | `simple` / `advanced` | `simple` | Selection management |
-| `selectionMaxDataPoints` | 1-250 | 50 | Max selectable points |
+| `selectionMaxDataPoints` | 1-250 | 50 | Max selectable points (UI slider cap; advanced mode supports up to 2500) |
 | `tooltipDelay` | numeric | -- | Tooltip display delay (ms) |
 
 #### `editor` object
@@ -101,10 +101,10 @@ Templates are valid Vega/Vega-Lite JSON files with a `usermeta` object. Schema: 
   "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
   "usermeta": {
     "deneb": {
-      "build": "1.7.1.0",
+      "build": "1.9.0.0",
       "metaVersion": 1,
       "provider": "vegaLite",
-      "providerVersion": "5.20.1"
+      "providerVersion": "6.4.1"
     },
     "information": {
       "name": "Chart Name",
@@ -181,9 +181,15 @@ Deneb adds these fields to the dataset at runtime:
 
 | Field | Purpose |
 |-------|---------|
-| `__identity__` | Raw identity for cross-filtering row context |
+| `__row__` | Zero-based row index. Use for cross-filtering row context. Replaces `__identity__` (removed in 1.9) |
 | `__selected__` | Selection state: `"on"`, `"off"`, or `"neutral"` |
-| `<field>__highlight` | Cross-highlight value for each measure |
+| `<field>__highlight` | Cross-highlight value for each measure (the highlighted number) |
+| `<field>__highlightStatus` | Highlight state per measure: `"on"`, `"off"`, or `"neutral"` |
+| `<field>__highlightComparator` | Pre-computed comparison: `"eq"`, `"lt"`, `"gt"`, `"neq"` (highlight vs original) |
+| `<field>__formatted` | Pre-formatted string value using the Power BI format string for that measure |
+| `<field>__format` | The Power BI format string for the measure (e.g. `"$#,0.00"`) |
+
+> **Breaking change in 1.9:** `__identity__` and `__key__` were removed. Any spec using `datum.__identity__` must be updated to `datum.__row__`.
 
 ## Community Resources
 
