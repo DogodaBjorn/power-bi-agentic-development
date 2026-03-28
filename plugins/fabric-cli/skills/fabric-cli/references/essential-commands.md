@@ -273,13 +273,74 @@ fab table load "Data.Workspace/LH.Lakehouse/Tables/sales" --file "Data.Workspace
 fab table optimize "Data.Workspace/LH.Lakehouse/Tables/sales" --vorder --zorder customer_id
 ```
 
+### Supported Export/Import Item Types
+
+| Type | Local Format | Notes |
+|------|-------------|-------|
+| `.Report` | PBIR folder | Double-click `.pbir` to open in Power BI Desktop (Developer Mode) |
+| `.SemanticModel` | TMDL folder | Open with Power BI Desktop or Tabular Editor |
+| `.Notebook` | `.py` or folder | Fabric notebook format; use `--format py` for plain Python |
+| `.DataPipeline` | JSON folder | Pipeline definition |
+| `.Lakehouse` | Metadata only | Files must be copied separately with `fab cp` |
+
+### Export Output Structure
+
+```
+output/
+  Report.Report/
+    .platform
+    definition.pbir
+    definition/
+      report.json
+      pages/
+  Model.SemanticModel/
+    .platform
+    definition/
+      model.tmdl
+      database.tmdl
+      tables/
+```
+
+### Bulk Export/Import
+
+```bash
+# Export all semantic models from a workspace
+fab ls "ws.Workspace" | grep ".SemanticModel" | while read item; do
+  fab export "ws.Workspace/$item" -o ./models -f
+done
+
+# Export all reports
+fab ls "ws.Workspace" | grep ".Report" | while read item; do
+  fab export "ws.Workspace/$item" -o ./reports -f
+done
+
+# Bulk import all items in a directory
+for item in ./exports/*; do
+  name=$(basename "$item")
+  fab import "ws.Workspace/$name" -i "$item" -f
+done
+```
+
 ### Environment Migration
 
 ```bash
 # Export from dev
-fab export "Dev.Workspace" -o /tmp/migration -a
+mkdir -p /tmp/migration
+fab export "Dev.Workspace" -o /tmp/migration -a -f
 
 # Import to production (item by item)
-fab import "Production.Workspace/Pipeline.DataPipeline" -i /tmp/migration/Pipeline.DataPipeline
-fab import "Production.Workspace/Report.Report" -i /tmp/migration/Report.Report
+fab import "Production.Workspace/Pipeline.DataPipeline" -i /tmp/migration/Pipeline.DataPipeline -f
+fab import "Production.Workspace/Report.Report" -i /tmp/migration/Report.Report -f
+
+# Reports deployed without their model need rebinding
+fab set "Production.Workspace/Report.Report" -q semanticModelId -i "<model-id>"
+```
+
+### Download as PBIP Project
+
+To export a semantic model as a complete PBIP project (openable in Power BI Desktop):
+
+```bash
+python3 scripts/export_semantic_model_as_pbip.py \
+  "Workspace.Workspace" "Model.SemanticModel" ./output
 ```

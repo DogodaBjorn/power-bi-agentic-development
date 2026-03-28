@@ -1,6 +1,6 @@
 ---
 name: fabric-cli
-version: 0.9.3
+version: 0.10.0
 description: This skill should be used when the user asks to "use the Fabric CLI", "run fab commands", "deploy Fabric items", "manage Fabric workspaces", "query a lakehouse", "refresh a semantic model via CLI", "run a Fabric notebook", "manage OneLake files", "automate Fabric operations", or mentions fab, Fabric CLI, or Fabric item management. Provides expert guidance for the fab CLI covering navigation, deployment, jobs, APIs, and automation.
 ---
 
