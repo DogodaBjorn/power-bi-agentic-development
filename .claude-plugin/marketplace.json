@@ -32,6 +32,11 @@
       "name": "reports",
       "description": "Skills for Power BI report design and custom visuals (Deneb, R, Python, SVG).",
       "source": "./plugins/reports"
+    },
+    {
+      "name": "fabric-cli",
+      "description": "Skill and commands for using the Microsoft Fabric CLI (fab) to manage Fabric workspaces, semantic models, reports, and other resources.",
+      "source": "./plugins/fabric-cli"
     }
   ]
 }
